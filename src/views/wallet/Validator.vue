@@ -277,7 +277,9 @@ export default class Validator extends Vue {
     async evaluateCanRegisterNode() {
         const BN_ONE = new BN(1)
         const result = await WalletHelper.getAddressState(this.addresses[0])
-        this.isKycVerified = !result.and(BN_ONE.shln(AddressState.KYC_VERIFIED)).isZero()
+        this.isKycVerified =
+            !result.and(BN_ONE.shln(AddressState.KYC_VERIFIED)).isZero() ||
+            !result.and(BN_ONE.shln(AddressState.KYB_VERIFIED)).isZero()
         this.isConsortiumMember = !result.and(BN_ONE.shln(AddressState.CONSORTIUM)).isZero()
         this.validatorIsSuspended = !result.and(BN_ONE.shln(AddressState.NODE_DEFERRED)).isZero()
 
