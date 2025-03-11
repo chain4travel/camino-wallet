@@ -69,6 +69,7 @@
                                         v-else
                                         :max="maxLeftToDeposit"
                                         v-model="amt"
+                                        :readonly="maxLeftToDeposit.isZero()"
                                     ></AvaxInput>
                                 </div>
                                 <Alert v-if="pendingDepositTX" variant="info">
@@ -127,7 +128,11 @@
                                                 { 'camino--button--disabled': isDepositDisabled },
                                             ]"
                                             @click.prevent="submitDeposit"
-                                            :disabled="isDepositDisabled"
+                                            :disabled="
+                                                isDepositDisabled ||
+                                                amt.gt(maxLeftToDeposit) ||
+                                                maxLeftToDeposit.isZero()
+                                            "
                                         >
                                             {{ $t('earn.rewards.offer.deposit') }}
                                         </button>
@@ -364,9 +369,8 @@ export default class ModalDepositFunds extends Vue {
         return bnToBig(this.amt, 9).toString()
     }
     get maxLeftToDeposit(): BN {
-        if (this.offer.upgradeVersion === 0 || !this.offer.totalMaxAmount.isZero()) {
-            if (this.offer.upgradeVersion === 0) return this.maxDepositAmount
-            return this.offer.totalMaxAmount
+        if (!this.offer.totalMaxAmount.isZero()) {
+            return this.offer.totalMaxAmount.sub(this.offer.depositedAmount)
         }
         let rest = this.offer.totalMaxRewardAmount.sub(this.offer.rewardedAmount)
         let amountLeftToDeposit = new BN(

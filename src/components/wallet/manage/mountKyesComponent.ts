@@ -21,7 +21,7 @@ export const mountKyesComponent = (el: string, props: any) => {
                 return {
                     dispatchNotification: (params) => dispatchNotification(params),
                     dispatchSetNewName: () => dispatchSetNewName(),
-                    updateStore: (params) => props.updateStore(params),
+                    updateStore: (type, params) => props.updateStore(type, params),
                     setAccount: (params) => setAccount(params),
                 }
             }

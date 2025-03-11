@@ -1,7 +1,7 @@
 <template>
     <div v-if="hasPendingRewards || hasRewards">
         <TreasuryRewardCard
-            v-if="firstTreasuryReward"
+            v-if="firstTreasuryReward && !firstTreasuryReward.amountToClaim.isZero()"
             class="reward_card"
             :key="'reward_TreasuryReward'"
             :reward="firstTreasuryReward"

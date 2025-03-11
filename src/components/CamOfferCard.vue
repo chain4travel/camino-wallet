@@ -204,16 +204,16 @@ export default class CamOfferCard extends Vue {
     }
 
     get amountLimit(): { nominator: BN; amount: BN } {
-        return this.offer.upgradeVersion === 0 || !this.offer.totalMaxAmount.isZero()
+        return !this.offer.totalMaxAmount.isZero()
             ? { nominator: this.offer.depositedAmount, amount: this.offer.totalMaxAmount }
             : { nominator: this.offer.rewardedAmount, amount: this.offer.totalMaxRewardAmount }
     }
 
     get progress(): string {
         const amt = this.amountLimit
-        return amt.amount.isZero()
-            ? '0px'
-            : amt.nominator.div(amt.amount).mul(new BN(100)).toString() + '%'
+        const scaledResult = amt.nominator.mul(new BN(100)).mul(new BN(100))
+        const preciseResult = scaledResult.div(amt.amount)
+        return amt.amount.isZero() ? '0px' : Number(preciseResult.toString()) / 100 + '%'
     }
 
     get progressText(): string {

@@ -74,38 +74,79 @@ export default class AddERCNftTokenModal extends Vue {
             this.err = ''
             return false
         }
+
+        const IPFS_GATEWAYS = [
+            'https://gateway.pinata.cloud/ipfs/',
+            'https://ipfs.io/ipfs/',
+            'https://cloudflare-ipfs.com/ipfs/',
+        ]
+
+        async function fetchWithFallback(uri: string) {
+            if (!uri.startsWith('ipfs://')) return axios.get(uri)
+
+            const ipfsHash = uri.substring(7)
+            for (const gateway of IPFS_GATEWAYS) {
+                try {
+                    return await axios.get(gateway + ipfsHash)
+                } catch (e) {
+                    if (gateway === IPFS_GATEWAYS[IPFS_GATEWAYS.length - 1]) throw e
+                    continue
+                }
+            }
+        }
+
         try {
             let tokenInst = new web3.eth.Contract(IERCNftAbi as AbiItem[], val)
+
             const isErc721 = await tokenInst.methods.supportsInterface(ERC721ID).call()
             if (isErc721) {
-                let name = await tokenInst.methods.name().call()
-                let symbol = await tokenInst.methods.symbol().call()
+                const name = await tokenInst.methods.name().call()
+                const symbol = await tokenInst.methods.symbol().call()
 
                 this.symbol = symbol
                 this.name = name
-
                 this.canAdd = true
                 return true
             }
+
             const isErc1155 = await tokenInst.methods.supportsInterface(ERC1155ID).call()
             if (isErc1155) {
                 tokenInst = new web3.eth.Contract(IERC1155Abi as AbiItem[], val)
-                const metadataUri = await tokenInst.methods.uri(0).call()
-                const uri = metadataUri?.startsWith('ipfs://')
-                    ? `${CF_IPFS_BASE}${metadataUri.substring(7)}`
-                    : metadataUri
-                const metadata = await axios.get(uri.replace('{id}', 0))
 
-                this.name = metadata.data.name
-                this.symbol = metadata.data.symbol
-                this.canAdd = true
-                return true
+                const tokenIds = [0, 1, 2]
+                for (const tokenId of tokenIds) {
+                    try {
+                        const metadataUri = await tokenInst.methods.uri(tokenId).call()
+
+                        const tokenIdHex = web3.utils
+                            .padLeft(web3.utils.toHex(tokenId), 64)
+                            .replace('0x', '')
+                        const uri = metadataUri?.includes('{id}')
+                            ? metadataUri.replace('{id}', tokenIdHex)
+                            : metadataUri
+
+                        const metadata = await fetchWithFallback(uri)
+
+                        if (metadata?.data) {
+                            this.name = metadata.data.name || '-'
+                            this.symbol = metadata.data.symbol || '-'
+                            this.canAdd = true
+                            return true
+                        }
+                    } catch (err) {
+                        continue
+                    }
+                }
+
+                throw new Error('No valid metadata found for tested token IDs')
             }
+
+            throw new Error('Contract does not support ERC721 or ERC1155')
         } catch (e) {
             this.canAdd = false
             this.symbol = '-'
             this.name = '-'
-            this.err = 'Invalid contract address.'
+            this.err = 'Invalid contract address or metadata.'
             return false
         }
     }

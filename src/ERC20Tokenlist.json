@@ -9,12 +9,12 @@
     },
     "tokens": [
         {
-            "chainId": 0,
-            "address": "",
+            "chainId": 501,
+            "address": "0xF39203dBdc1964B5214207C51E1245184Bec38b5",
             "decimals": 18,
-            "name": "",
-            "symbol": "",
-            "logoURI": ""
+            "name": "Monerium EURe",
+            "symbol": "EURe",
+            "logoURI": "/img/eure_logo.png"
         }
     ],
     "timestamp": "2022-03-20T00:00:00+00:00"

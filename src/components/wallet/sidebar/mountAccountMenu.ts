@@ -42,7 +42,7 @@ export const mountAccountMenu = (el: string, props: any) => {
                     setAccount: (acc) => setAccount(acc),
                     dispatchNotification: (params) => dispatchNotification(params),
                     dispatchSetNewName: () => dispatchSetNewName(),
-                    updateStore: (params) => props.updateStore(params),
+                    updateStore: (type, params) => props.updateStore(type, params),
                 }
             }
         },

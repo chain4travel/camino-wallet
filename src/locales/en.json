@@ -295,6 +295,7 @@
             },
             "form_col": {
                 "label1": "Quantity",
+                "label2": "Owners (optional)",
                 "fee": "Fee",
                 "submit": "Mint"
             },
@@ -315,7 +316,9 @@
                     "label3": "Description",
                     "err1": "Not a valid image URL.",
                     "err2": "You must set the image.",
-                    "err3": "Image URL too long."
+                    "err3": "Image URL too long.",
+                    "errInvalidUrl": "The provided URL is not valid or unsupported.",
+                    "errInvalidJson": "The JSON metadata is invalid or missing the image field."
                 },
                 "json": {
                     "label1": "JSON Payload (MAX 1024 characters)"
@@ -593,7 +596,8 @@
                 "confirmation_message": "{amount} {symbol} has been claimed.",
                 "signature_collected": "Your signature has been collected.",
                 "confirm": "Confirm",
-                "cancel": "Cancel"
+                "cancel": "Cancel",
+                "alert_info_message": "The requested claim operation will claim less funds than the transaction will cost. Please confirm that you want to proceed with this operation."
             },
             "abort_modal": {
                 "title": "Abort Claim Rewards",

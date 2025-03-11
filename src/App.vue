@@ -49,11 +49,20 @@ export default {
     mounted() {
         let { updateSuiteStore } = this.globalHelper()
         updateSuiteStore(this.$store.state)
+        this.$store.dispatch('Signavault/updateImportedMultiSigTransaction')
     },
+
     watch: {
         '$store.state.isAuth': [
             {
                 handler: 'onAuthChanged',
+                immediate: false,
+                deep: false,
+            },
+        ],
+        '$store.state.Signavault.importedTransactions': [
+            {
+                handler: 'updatePendingTX',
                 immediate: false,
                 deep: false,
             },
@@ -66,6 +75,9 @@ export default {
             } else {
                 this.$router.push('/login')
             }
+        },
+        updatePendingTX() {
+            this.globalHelper()?.updateStore('updatePendingTxState', true)
         },
     },
     metaInfo: {

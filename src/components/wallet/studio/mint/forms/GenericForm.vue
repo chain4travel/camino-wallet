@@ -8,6 +8,7 @@
             <label>{{ $t('studio.mint.forms.generic.label2') }}</label>
             <CamInput class="text" placeholder="https://" v-model="imgUrl" @input="onInput" />
         </div>
+
         <div class="input_cont">
             <label>{{ $t('studio.mint.forms.generic.label3') }}</label>
             <CamInput
@@ -18,13 +19,12 @@
                 :textArea="true"
             />
         </div>
-        <!--        <div class="input_cont">-->
-        <!--            <label>Corner Radius</label>-->
-        <!--            <input type="number" min="0" max="100" v-model="radius"  @input="onInput"/>-->
-        <!--        </div>-->
-        <p class="err">{{ error }}</p>
+        <p v-if="errors.length" class="err">
+            <span v-for="(error, index) in errors" :key="index">{{ error }}</span>
+        </p>
     </div>
 </template>
+
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
 import { GenericFormType, IGenericNft } from '@/components/wallet/studio/mint/types'
@@ -39,66 +39,83 @@ export default class GenericForm extends Vue {
     title = ''
     description = ''
     imgUrl = ''
-    error = ''
-    // radius = 15
+    errors: string[] = []
+    imageUrl = ''
 
-    validate() {
-        // if (!this.title) {
-        //     this.error = 'You must set a title.'
-        //     return false
-        // }
-
+    async checkUrlType(url: URL) {
         try {
-            new URL(this.imgUrl)
-        } catch (e) {
-            this.error = this.$t('studio.mint.forms.generic.err1') as string
-            // this.error = 'Not a valid Image URL.'
-            return false
-        }
-        if (!this.imgUrl) {
-            this.error = this.$t('studio.mint.forms.generic.err2') as string
-            // this.error = 'You must set the image.'
-            return false
-        }
+            const response = await fetch(url.toString(), { method: 'HEAD' })
+            const contentType = response.headers.get('content-type') || ''
 
-        if (this.imgUrl.length > 516) {
-            this.error = this.$t('studio.mint.forms.generic.err3') as string
-            // this.error = 'Image URL too long.'
-            return false
+            if (contentType.includes('application/json')) {
+                await this.fetchJsonMetadata(url)
+            } else if (contentType.startsWith('image/')) {
+                this.imageUrl = this.imgUrl
+            } else {
+                throw new Error('Unsupported content type')
+            }
+        } catch (error) {
+            this.errors.push(this.$t('studio.mint.forms.generic.errInvalidUrl') as string)
         }
-
-        // if (this.radius < 0 || this.radius > 100) {
-        //     this.error = 'Invalid corner radius.'
-        //     return false
-        // }
-
-        return true
     }
 
-    onInput() {
-        let msg: null | GenericFormType = null
-        this.error = ''
+    async validate() {
+        this.errors = []
+        this.imageUrl = ''
 
-        if (this.validate()) {
-            let data: IGenericNft = {
+        if (!this.imgUrl) {
+            this.errors.push(this.$t('studio.mint.forms.generic.err2') as string)
+        } else {
+            try {
+                const url = new URL(this.imgUrl)
+
+                await this.checkUrlType(url)
+
+                if (this.imgUrl.length > 516) {
+                    this.errors.push(this.$t('studio.mint.forms.generic.err3') as string)
+                }
+            } catch {
+                this.errors.push(this.$t('studio.mint.forms.generic.err1') as string)
+            }
+        }
+
+        return this.errors.length === 0
+    }
+
+    async fetchJsonMetadata(url: URL) {
+        try {
+            const response = await fetch(url.toString())
+            const metadata = await response.json()
+
+            if (metadata.image) {
+                this.imageUrl = metadata.image
+            } else {
+                throw new Error('Missing image field in metadata')
+            }
+        } catch (error) {
+            this.errors.push(this.$t('studio.mint.forms.generic.errInvalidJson') as string)
+        }
+    }
+
+    async onInput() {
+        this.errors = []
+        let msg: null | GenericFormType = null
+        if (await this.validate()) {
+            const data: IGenericNft = {
                 version: 1,
                 type: 'generic',
                 title: this.title,
-                img: this.imgUrl,
-                // radius: this.radius,
+                img: this.imageUrl,
                 desc: this.description,
             }
-
-            msg = {
-                data: {
-                    avalanche: data,
-                },
-            }
+            msg = { data: { avalanche: data } }
         }
+
         this.$emit('onInput', msg)
     }
 }
 </script>
+
 <style scoped lang="scss">
 @use '../../../../../styles/abstracts/mixins';
 
@@ -110,6 +127,16 @@ export default class GenericForm extends Vue {
         width: 100%;
     }
 }
+.image-preview {
+    margin: 10px 0;
+
+    img {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+}
 .v-btn {
     margin-top: 14px;
 }
@@ -118,5 +145,9 @@ export default class GenericForm extends Vue {
     @include mixins.typography-caption;
     color: var(--primary-color-light);
     padding: 2px;
+}
+.err {
+    color: red;
+    margin-top: 10px;
 }
 </style>

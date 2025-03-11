@@ -25,6 +25,9 @@
                         }}
                     </p>
                 </div>
+                <Alert variant="warning" v-if="isAmountLessThanTxFee">
+                    {{ $t('earn.rewards.claim_modal.alert_info_message') }}
+                </Alert>
                 <div class="modal-buttons">
                     <CamBtn variant="transparent" @click="close()">
                         {{ $t('earn.rewards.claim_modal.cancel') }}
@@ -78,12 +81,14 @@ import Modal from '../../modals/Modal.vue'
 import CamBtn from '@/components/CamBtn.vue'
 import { cleanAvaxBN } from '@/helpers/helper'
 import { ZeroBN } from '@/constants'
+import Alert from '@/components/Alert.vue'
 
 @Component({
     components: {
         AvaxInput,
         Modal,
         CamBtn,
+        Alert,
     },
 })
 export default class ModalClaimDepositReward extends Vue {
@@ -138,7 +143,11 @@ export default class ModalClaimDepositReward extends Vue {
     }
 
     get feeAmt(): string {
-        return this.formattedAmount(ava.PChain().getTxFee())
+        return this.cleanAvaxBN(ava.PChain().getTxFee())
+    }
+
+    get isAmountLessThanTxFee(): boolean {
+        return this.amt.lt(ava.PChain().getTxFee())
     }
 
     get ava_asset(): AvaAsset | null {

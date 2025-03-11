@@ -35,6 +35,7 @@ abstract class WalletCore {
     name: string = ''
     type?: WalletNameType
     accountHash?: Buffer
+    pendingTx?: Object | undefined
 
     utxoset: AVMUTXOSet
     platformUtxoset: PlatformUTXOSet

@@ -26,7 +26,7 @@ export const mount = (el: string, appSuiteStore: any) => {
         install(Vue) {
             Vue.prototype.globalHelper = () => {
                 return {
-                    updateStore: (params) => appSuiteStore.updateStore(params),
+                    updateStore: (type, params) => appSuiteStore.updateStore(type, params),
                     updateSuiteStore: (s) => setUpdateStore(s),
                     updateShowAlias: () => updateShowAlias(),
                     logout: () => setLogOut(true),
