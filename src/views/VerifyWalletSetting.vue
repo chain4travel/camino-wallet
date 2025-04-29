@@ -9,7 +9,12 @@
             <div v-for="(item, index) in verificationItems" :key="index" class="content-item">
                 <div class="content-item-action">
                     <h2>{{ $t(`verify_wallet.verificationItems.${item.type}.title`) }}</h2>
-                    <v-icon v-if="isVerified(item.type) && !isMultisig">mdi-check-decagram</v-icon>
+                    <v-icon
+                        v-if="isVerified(item.type) && !isMultisig"
+                        :class="isVerified(item.type) ? 'v-icon--check-decagram' : ''"
+                    >
+                        mdi-check-decagram
+                    </v-icon>
                     <template v-else>
                         <component
                             :is="item.modalComponent"
@@ -202,6 +207,9 @@ export default class VerifyWalletSetting extends Vue {
                 width: 20px;
                 height: 20px;
                 @include mixins.typography-subtitle-1;
+            }
+            .v-icon--check-decagram {
+                color: var(--success);
             }
 
             &-action {
