@@ -10,7 +10,13 @@
                     }}
                 </p>
                 <br />
-                <div v-if="isMultiSig && canExecuteMultisigTx">
+                <div
+                    v-if="
+                        isMultiSig &&
+                        canExecuteMultisigTx &&
+                        pendingUndepositTx.hasSufficientUnlocked
+                    "
+                >
                     <AvaxInput
                         v-model="amount"
                         :initial="amount"

@@ -97,6 +97,13 @@
             >
                 {{ $t('earn.rewards.active_earning.are_you_sure') }}
             </Alert>
+            <Alert
+                v-if="pendingUndepositTx && !pendingUndepositTx.hasSufficientUnlocked"
+                variant="warning"
+                class="mt-2"
+            >
+                {{ $t('earn.rewards.active_earning.total_to_unlock_check') }}
+            </Alert>
         </template>
         <ModalClaimDepositReward
             ref="modal_claim_reward"
@@ -119,7 +126,7 @@ import 'reflect-metadata'
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator'
 
 import ModalClaimReward from '@/components/modals/ClaimRewardModal.vue'
-import { cleanAvaxBN } from '@/helpers/helper'
+import { cleanAvaxBN, UndepositPendingTx } from '@/helpers/helper'
 import { PlatformRewardDeposit } from '@/store/modules/platform/types'
 
 import { bintools } from '@/AVA'
@@ -162,13 +169,20 @@ export default class DepositRewardCard extends Vue {
     disclaimerDisplay: boolean = false
     // signedDepositID: string = ''
     @Prop() reward!: PlatformRewardDeposit
-    @Prop() pendingUndepositTx!: any
+    @Prop() pendingUndepositTx!: UndepositPendingTx
 
     $refs!: {
         // modal_claim_reward: ModalClaimReward
         modal_claim_reward: ModalClaimDepositReward
         modal_abort_signing: ModalAbortSigning
         modal_undeposit: ModalUndeposit
+    }
+
+    @Watch('pendingUndepositTx')
+    watchPendingTX() {
+        if (this.pendingUndepositTx.pendingTx) {
+            this.disclaimerDisplay = false
+        }
     }
 
     openAbortModal() {

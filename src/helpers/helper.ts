@@ -15,6 +15,7 @@ import { Buffer, BN } from '@c4tplatform/caminojs/dist'
 import createHash from 'create-hash'
 
 export interface UndepositPendingTx {
+    hasSufficientUnlocked: boolean
     amountToUndeposit: BN
     depositTxIDs: string[]
     pendingTx: SignavaultTx

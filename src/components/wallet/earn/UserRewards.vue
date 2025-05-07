@@ -101,6 +101,9 @@ export default class UserRewards extends Vue {
         let totalConsumedLocked = new BN(0)
         let totalProducedLocked = new BN(0)
 
+        // Track total unlocked amount
+        let totalUnlockedAmount = new BN(0)
+
         // Extract deposit transaction IDs
         const depositTxIDs: string[] = []
 
@@ -130,17 +133,25 @@ export default class UserRewards extends Vue {
             }
         }
 
-        // Process outputs to find produced locked amounts
+        // Process outputs to find produced locked amounts and unlocked outputs
         const outs = tx.getOuts()
         for (let i = 0; i < outs.length; i++) {
             const output = outs[i]
             const outputObj = output.getOutput()
 
             if (outputObj && outputObj._typeName === 'LockedOut') {
+                // Handle locked outputs
                 const producedLocked = outputObj.getOutput().amount
                 if (Buffer.isBuffer(producedLocked)) {
                     const bnAmount = bintools.fromBufferToBN(producedLocked)
                     totalProducedLocked = totalProducedLocked.add(bnAmount)
+                }
+            } else if (outputObj && 'amount' in outputObj) {
+                // Handle unlocked outputs
+                const amountBuffer = outputObj.amount
+                if (Buffer.isBuffer(amountBuffer)) {
+                    const amount = bintools.fromBufferToBN(amountBuffer)
+                    totalUnlockedAmount = totalUnlockedAmount.add(amount)
                 }
             }
         }
@@ -148,10 +159,18 @@ export default class UserRewards extends Vue {
         // Calculate amount to undeposit (consumedLocked - producedLocked)
         const amountToUndeposit = totalConsumedLocked.sub(totalProducedLocked)
 
+        // Get transaction fee
+        const txFee = ava.PChain().getTxFee()
+
+        // This ensures total unlocked amount is at least (amountToUndeposit - txFee)
+        const minimumExpectedUnlocked = amountToUndeposit.sub(txFee)
+        const hasSufficientUnlocked = totalUnlockedAmount.gte(minimumExpectedUnlocked)
+
         return {
             amountToUndeposit: amountToUndeposit,
             depositTxIDs,
             pendingTx,
+            hasSufficientUnlocked,
         }
     }
 
