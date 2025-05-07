@@ -1,6 +1,14 @@
 <template>
-    <CamOfferCard :title="rewardTitle" type="reward" :reward="reward">
+    <CamOfferCard
+        :title="rewardTitle"
+        type="reward"
+        :reward="reward"
+        :pendingUndepositTx="pendingUndepositTx"
+    >
         <div v-if="!isMultiSig" class="button_group">
+            <CamBtn variant="primary" @click="openUndepositModal" :disabled="isUndepositDisabled">
+                {{ $t('earn.rewards.active_earning.undeposit') }}
+            </CamBtn>
             <CamBtn variant="primary" @click="openModal" :disabled="isClaimDisabled">
                 {{ $t('earn.rewards.active_earning.claim') }}
             </CamBtn>
@@ -67,6 +75,11 @@
                 </CamBtn>
             </div>
             <div v-else class="button_group">
+                <undeposit-buttons
+                    :reward="reward"
+                    :pendingUndepositTx="pendingUndepositTx"
+                    @updateDisclaimer="updateDisclaimer"
+                />
                 <CamBtn
                     variant="primary"
                     @click="disclamer = true"
@@ -76,7 +89,9 @@
                 </CamBtn>
             </div>
             <Alert
-                v-if="disclamer && !alreadySigned(reward.deposit.depositTxID)"
+                v-if="
+                    (disclamer && !alreadySigned(reward.deposit.depositTxID)) || disclaimerDisplay
+                "
                 variant="warning"
                 class="mt-2"
             >
@@ -121,6 +136,8 @@ import { DepositOffer } from '@c4tplatform/caminojs/dist/apis/platformvm/interfa
 import { ModelMultisigTxOwner } from '@c4tplatform/signavaultjs'
 import ModalAbortSigning from './ModalAbortSigning.vue'
 import ModalClaimDepositReward from './ModalClaimDepositReward.vue'
+import ModalUndeposit from './ModalUndeposit.vue'
+import UndepositButtons from './UndepositButtons.vue'
 
 @Component({
     components: {
@@ -130,6 +147,8 @@ import ModalClaimDepositReward from './ModalClaimDepositReward.vue'
         CamBtn,
         Alert,
         CamOfferCard,
+        ModalUndeposit,
+        UndepositButtons,
     },
 })
 export default class DepositRewardCard extends Vue {
@@ -140,13 +159,16 @@ export default class DepositRewardCard extends Vue {
     // @ts-ignore
     helpers = this.globalHelper()
     signedclaimedAmount: BN = new BN(0)
+    disclaimerDisplay: boolean = false
     // signedDepositID: string = ''
     @Prop() reward!: PlatformRewardDeposit
+    @Prop() pendingUndepositTx!: any
 
     $refs!: {
         // modal_claim_reward: ModalClaimReward
         modal_claim_reward: ModalClaimDepositReward
         modal_abort_signing: ModalAbortSigning
+        modal_undeposit: ModalUndeposit
     }
 
     openAbortModal() {
@@ -154,6 +176,10 @@ export default class DepositRewardCard extends Vue {
     }
     updateNow() {
         this.now = Date.now()
+    }
+
+    updateDisclaimer() {
+        this.disclaimerDisplay = !this.disclaimerDisplay
     }
 
     created() {
@@ -170,11 +196,15 @@ export default class DepositRewardCard extends Vue {
         this.updateMultisigTxDetails()
     }
 
+    get unlockableAmount(): BN {
+        return this.reward.deposit.unlockableAmount
+    }
+
     get activeWallet(): WalletType {
         return this.$store.state.activeWallet
     }
 
-    get pendingSendMultisigTX(): SignavaultTx | undefined {
+    get pendingClaimMultisigTx(): SignavaultTx | undefined {
         return this.$store.getters['Signavault/transactions'].find(
             (item: any) =>
                 item?.tx?.alias === this.activeWallet.getStaticAddress('P') &&
@@ -186,9 +216,9 @@ export default class DepositRewardCard extends Vue {
         const wallet = this.activeWallet
         if (!wallet || !(wallet instanceof MultisigWallet))
             return console.debug('MultiSigTx::sign: Invalid wallet')
-        if (!this.pendingSendMultisigTX) return console.debug('MultiSigTx::sign: Invalid Tx')
+        if (!this.pendingClaimMultisigTx) return console.debug('MultiSigTx::sign: Invalid Tx')
         try {
-            await wallet.addSignatures(this.pendingSendMultisigTX?.tx)
+            await wallet.addSignatures(this.pendingClaimMultisigTx?.tx)
             this.helpers.dispatchNotification({
                 message: this.$t('notifications.multisig_transaction_saved'),
                 type: 'success',
@@ -206,9 +236,9 @@ export default class DepositRewardCard extends Vue {
     async cancelMultisigTx() {
         try {
             const wallet = this.activeWallet as MultisigWallet
-            if (this.pendingSendMultisigTX) {
+            if (this.pendingClaimMultisigTx) {
                 // cancel from the wallet
-                await wallet.cancelExternal(this.pendingSendMultisigTX?.tx)
+                await wallet.cancelExternal(this.pendingClaimMultisigTx?.tx)
                 await this.$store.dispatch('Signavault/updateTransaction')
                 this.helpers.dispatchNotification({
                     message: this.$t('transfer.multisig.transaction_aborted'),
@@ -226,9 +256,9 @@ export default class DepositRewardCard extends Vue {
     }
 
     private async updateMultisigTxDetails() {
-        if (this.pendingSendMultisigTX) {
+        if (this.pendingClaimMultisigTx) {
             let unsignedTx = new UnsignedTx()
-            unsignedTx.fromBuffer(Buffer.from(this.pendingSendMultisigTX.tx?.unsignedTx, 'hex'))
+            unsignedTx.fromBuffer(Buffer.from(this.pendingClaimMultisigTx.tx?.unsignedTx, 'hex'))
             const utx = unsignedTx.getTransaction() as ClaimTx
             const claimAmounts = utx.getClaimAmounts()
 
@@ -236,6 +266,7 @@ export default class DepositRewardCard extends Vue {
             this.signedclaimedAmount = new BN(amount)
         }
     }
+
     get numberOfSignatures(): number {
         let signers = 0
         this.txOwners(this.reward.deposit.depositTxID).forEach((owner) => {
@@ -245,11 +276,11 @@ export default class DepositRewardCard extends Vue {
     }
 
     get threshold(): number {
-        return this.pendingSendMultisigTX?.tx?.threshold ?? 0
+        return this.pendingClaimMultisigTx?.tx?.threshold ?? 0
     }
 
     getPendingMultisigTx(depositTxID: string): SignavaultTx | undefined {
-        const tx = this.pendingSendMultisigTX
+        const tx = this.pendingClaimMultisigTx
         if (!tx) return undefined
 
         const depositId = this.signedDepositID()
@@ -258,7 +289,7 @@ export default class DepositRewardCard extends Vue {
     }
 
     signedDepositID() {
-        const tx = this.pendingSendMultisigTX
+        const tx = this.pendingClaimMultisigTx
 
         if (!tx) return undefined
 
@@ -319,7 +350,7 @@ export default class DepositRewardCard extends Vue {
     }
 
     disallowedClaim(depositTxID: string): boolean {
-        if (!this.pendingSendMultisigTX) return false
+        if (!this.pendingClaimMultisigTx) return false
         else {
             if (!this.signedDepositID() || this.signedDepositID() === depositTxID) return false
             else return true
@@ -341,7 +372,19 @@ export default class DepositRewardCard extends Vue {
     }
 
     get isClaimDisabled() {
-        return this.reward.amountToClaim.isZero()
+        return (
+            this.reward.amountToClaim.isZero() ||
+            (this.$store.getters['Signavault/transactions'].length > 0 &&
+                !this.pendingClaimMultisigTx)
+        )
+    }
+
+    get isUndepositDisabled() {
+        return this.reward.deposit.unlockableAmount.isZero()
+    }
+
+    get initiatedUnlockAmount(): string {
+        return this.pendingUndepositTx.amountToUndeposit
     }
 
     cleanAvaxBN(val: BN): string {
@@ -351,6 +394,11 @@ export default class DepositRewardCard extends Vue {
     openModal() {
         this.disclamer = false
         this.$refs.modal_claim_reward.open()
+    }
+
+    openUndepositModal() {
+        this.disclamer = false
+        this.$refs.modal_undeposit.open()
     }
 }
 </script>

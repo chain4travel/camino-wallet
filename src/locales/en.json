@@ -583,7 +583,13 @@
                 "deposit_start": "Deposit Start",
                 "deposit_end": "Deposit End",
                 "deposit_amount": "Deposit Amount",
-                "deposited_amount": "Deposited Amount"
+                "deposited_amount": "Deposited Amount",
+                "undepositable_amount": "Undepositable Amount",
+                "already_undeposited": "Already Undeposited",
+                "undeposit": "Undeposit",
+                "initiated_undeposit": "Initiated Undeposit Amount",
+                "unlock_amount": "How much {nativeAssetSymbol} you would like to unlock?",
+                "total_to_unlock": "Total un-depositable {nativeAssetSymbol} availble"
             },
             "pending_rewards": {
                 "title": "Expired deposit rewards",
@@ -594,6 +600,13 @@
                 "are_you_sure": "Are you sure you want to claim {amount} {symbol} rewards?",
                 "note_message": "Transaction fee:  {fee} {symbol}.",
                 "confirmation_message": "{amount} {symbol} has been claimed.",
+                "signature_collected": "Your signature has been collected.",
+                "confirm": "Confirm",
+                "cancel": "Cancel",
+                "alert_info_message": "The requested claim operation will claim less funds than the transaction will cost. Please confirm that you want to proceed with this operation."
+            },
+            "undeposit_modal": {
+                "confirmation_message": "{amount} {symbol} has been undeposited.",
                 "signature_collected": "Your signature has been collected.",
                 "confirm": "Confirm",
                 "cancel": "Cancel",

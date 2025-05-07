@@ -14,6 +14,7 @@
                 :reward="reward"
                 class="reward_card"
                 @updatePendingDepositClaim="updatePendingDepositClaim"
+                :pendingUndepositTx="pendingUndepositTx"
             />
         </div>
     </div>
@@ -26,6 +27,13 @@ import { Component, Vue } from 'vue-property-decorator'
 import DepositRewardCard from '@/components/wallet/earn/DepositRewardCard.vue'
 import { PlatformRewards } from '@/store/modules/platform/types'
 import TreasuryRewardCard from './TreasuryRewardCard.vue'
+import { MultisigTx as SignavaultTx } from '@/store/modules/signavault/types'
+import { WalletHelper } from '@/helpers/wallet_helper'
+import { UnlockDepositTx, UnsignedTx } from '@c4tplatform/caminojs/dist/apis/platformvm'
+import { BN, Buffer } from '@c4tplatform/caminojs/dist'
+import { ava, bintools } from '@/AVA'
+import { WalletType } from '@/js/wallets/types'
+import { bnToBig, UndepositPendingTx } from '@/helpers/helper'
 
 @Component({
     components: {
@@ -68,6 +76,83 @@ export default class UserRewards extends Vue {
 
     get firstTreasuryReward() {
         return this.platformRewards.treasuryRewards[0] ?? null
+    }
+
+    get activeWallet(): WalletType {
+        return this.$store.state.activeWallet
+    }
+
+    get pendingUndepositTx(): UndepositPendingTx | null {
+        const pendingTx = this.$store.getters['Signavault/transactions'].find(
+            (item: SignavaultTx) =>
+                item?.tx?.alias === this.activeWallet.getStaticAddress('P') &&
+                WalletHelper.getUnsignedTxType(item?.tx?.unsignedTx) === 'UnlockDepositTx'
+        )
+        if (!pendingTx?.tx?.unsignedTx) {
+            return null
+        }
+
+        const unsignedTx = new UnsignedTx()
+        unsignedTx.fromBuffer(Buffer.from(pendingTx.tx.unsignedTx, 'hex'))
+
+        const tx = unsignedTx.getTransaction() as UnlockDepositTx
+
+        // Track total consumed and produced locked amounts
+        let totalConsumedLocked = new BN(0)
+        let totalProducedLocked = new BN(0)
+
+        // Extract deposit transaction IDs
+        const depositTxIDs: string[] = []
+
+        // Process inputs to find consumed locked amounts and deposit txIDs
+        const ins = tx.getIns()
+        for (let i = 0; i < ins.length; i++) {
+            const input = ins[i]
+            const baseInput = input.getInput()
+
+            if (baseInput && baseInput._typeName === 'LockedIn') {
+                // Get consumed locked amount
+                const consumedLocked = baseInput.getInput().amount
+                if (Buffer.isBuffer(consumedLocked)) {
+                    const bnAmount = bintools.fromBufferToBN(consumedLocked)
+                    totalConsumedLocked = totalConsumedLocked.add(bnAmount)
+                }
+
+                // Extract deposit txID
+                const lockedIn = baseInput as any
+                if (lockedIn.ids && lockedIn.ids.depositTxID && lockedIn.ids.depositTxID.txid) {
+                    const depositTxIDBuffer = lockedIn.ids.depositTxID.txid
+                    const depositTxID = bintools.cb58Encode(depositTxIDBuffer)
+                    if (!depositTxIDs.includes(depositTxID)) {
+                        depositTxIDs.push(depositTxID)
+                    }
+                }
+            }
+        }
+
+        // Process outputs to find produced locked amounts
+        const outs = tx.getOuts()
+        for (let i = 0; i < outs.length; i++) {
+            const output = outs[i]
+            const outputObj = output.getOutput()
+
+            if (outputObj && outputObj._typeName === 'LockedOut') {
+                const producedLocked = outputObj.getOutput().amount
+                if (Buffer.isBuffer(producedLocked)) {
+                    const bnAmount = bintools.fromBufferToBN(producedLocked)
+                    totalProducedLocked = totalProducedLocked.add(bnAmount)
+                }
+            }
+        }
+
+        // Calculate amount to undeposit (consumedLocked - producedLocked)
+        const amountToUndeposit = totalConsumedLocked.sub(totalProducedLocked)
+
+        return {
+            amountToUndeposit: amountToUndeposit,
+            depositTxIDs,
+            pendingTx,
+        }
     }
 
     get nativeAssetSymbol(): string {
