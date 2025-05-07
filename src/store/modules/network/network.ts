@@ -24,7 +24,20 @@ const network_module: Module<NetworkState, RootState> = {
             state.networks.push(net)
         },
         selectNetwork(state, net: AvaNetwork) {
-            state.selectedNetwork = net
+            const networkCopy = {
+                name: net.name,
+                url: net.url,
+                networkId: net.networkId,
+                explorerUrl: net.explorerUrl,
+                explorerSiteUrl: net.explorerSiteUrl,
+                signavaultUrl: net.signavaultUrl,
+                readonly: net.readonly,
+                ip: net.ip,
+                port: net.port,
+                protocol: net.protocol,
+                withCredentials: net.withCredentials,
+            } as AvaNetwork
+            state.selectedNetwork = networkCopy
         },
     },
     getters: {
