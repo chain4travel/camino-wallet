@@ -224,7 +224,7 @@ export default class UndepositButtons extends Vue {
         try {
             await wallet.addSignatures(this.pendingTX?.tx)
             this.helpers.dispatchNotification({
-                message: 'Your signature saved successfully!',
+                message: 'Your signature has been saved successfully!',
                 type: 'success',
             })
             this.$store.dispatch('Signavault/updateTransaction')
