@@ -231,7 +231,7 @@ export default class UndepositButtons extends Vue {
             this.updateButtonStatus()
         } catch (e: any) {
             this.helpers.dispatchNotification({
-                message: 'Your signature is not saved.',
+                message: 'Your signature has not been saved.',
                 type: 'error',
             })
         }
