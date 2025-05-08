@@ -133,7 +133,7 @@ jobs:
         env:
           USE_HTTP: true
         with:
-          wait-on: 'http://localhost:5001/, http://localhost:5002/, http://localhost:5003/'
+          wait-on: 'http://localhost:5002/, http://localhost:5003/ , http://localhost:5001/'
           working-directory: camino-suite
           # wait for 3 minutes for the server to respond
           wait-on-timeout: 180
