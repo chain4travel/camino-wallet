@@ -9,9 +9,17 @@ import {
 
 import { ONEAVAX, PayloadBase, PayloadTypes } from '@c4tplatform/caminojs/dist/utils'
 import Big from 'big.js'
+import { MultisigTx as SignavaultTx } from '@/store/modules/signavault/types'
 
 import { Buffer, BN } from '@c4tplatform/caminojs/dist'
 import createHash from 'create-hash'
+
+export interface UndepositPendingTx {
+    hasSufficientUnlocked: boolean
+    amountToUndeposit: BN
+    depositTxIDs: string[]
+    pendingTx: SignavaultTx
+}
 
 function bnToBig(val: BN, denomination = 0): Big {
     return new Big(val.toString()).div(Math.pow(10, denomination))

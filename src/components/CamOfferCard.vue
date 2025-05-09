@@ -82,10 +82,24 @@
                             {{ cleanAvaxBN(reward.deposit.amount) }} {{ nativeAssetSymbol }}
                         </p>
                     </div>
+                    <div>
+                        <label>{{ $t('earn.rewards.active_earning.undepositable_amount') }}:</label>
+                        <p class="reward">
+                            {{ cleanAvaxBN(reward?.deposit?.unlockableAmount) }}
+                            {{ nativeAssetSymbol }}
+                        </p>
+                    </div>
                     <div class="reward_row">
                         <label>{{ $t('earn.rewards.active_earning.pending_reward') }}:</label>
                         <p class="reward">
                             {{ cleanAvaxBN(reward.amountToClaim) }} {{ nativeAssetSymbol }}
+                        </p>
+                    </div>
+                    <div>
+                        <label>{{ $t('earn.rewards.active_earning.already_undeposited') }}:</label>
+                        <p class="reward">
+                            {{ cleanAvaxBN(reward?.deposit?.unlockedAmount) }}
+                            {{ nativeAssetSymbol }}
                         </p>
                     </div>
                     <div class="reward_row">
@@ -100,6 +114,10 @@
                         <p class="reward">
                             {{ updateMultisigTxDetails() }} {{ nativeAssetSymbol }}
                         </p>
+                    </div>
+                    <div class="reward_row" v-if="pendingUnlockAmount !== null">
+                        <label>{{ $t('earn.rewards.active_earning.initiated_undeposit') }}:</label>
+                        <p class="reward">{{ pendingUnlockAmount }} {{ nativeAssetSymbol }}</p>
                     </div>
                 </div>
             </div>
@@ -137,6 +155,7 @@ import { ClaimTx, UnsignedTx } from '@c4tplatform/caminojs/dist/apis/platformvm'
 import { DepositOffer } from '@c4tplatform/caminojs/dist/apis/platformvm/interfaces'
 import { Component, Prop, Vue } from 'vue-property-decorator'
 import CamCard from './CamCard.vue'
+import { bnToBig, UndepositPendingTx } from '@/helpers/helper'
 
 @Component({
     components: { CamCard },
@@ -147,6 +166,7 @@ export default class CamOfferCard extends Vue {
     @Prop() readonly offer!: DepositOffer
     @Prop() readonly reward!: PlatformRewardDeposit
     @Prop() readonly treasuryRewards!: PlatformRewardTreasury
+    @Prop() readonly pendingUndepositTx!: UndepositPendingTx | null
 
     get isOffer() {
         return this.type === 'offer'
@@ -154,6 +174,18 @@ export default class CamOfferCard extends Vue {
 
     get isReward() {
         return this.type === 'reward'
+    }
+
+    get pendingUnlockAmount() {
+        if (
+            this.pendingUndepositTx &&
+            this.pendingUndepositTx.depositTxIDs.find(
+                (id: string) => id === this.reward.deposit.depositTxID
+            )
+        ) {
+            return Number(bnToBig(this.pendingUndepositTx?.amountToUndeposit, 9)?.toString())
+        }
+        return null
     }
 
     get isTreasuryRewards() {
@@ -211,16 +243,20 @@ export default class CamOfferCard extends Vue {
 
     get progress(): string {
         const amt = this.amountLimit
+        if (amt.amount.isZero()) {
+            return '0px'
+        }
         const scaledResult = amt.nominator.mul(new BN(100)).mul(new BN(100))
         const preciseResult = scaledResult.div(amt.amount)
-        return amt.amount.isZero() ? '0px' : Number(preciseResult.toString()) / 100 + '%'
+        return Number(preciseResult.toString()) / 100 + '%'
     }
 
     get progressText(): string {
         const amt = this.amountLimit
-        return amt.amount.isZero()
-            ? 'No Limit'
-            : this.progress + '(' + cleanAvaxBN(amt.amount) + this.nativeAssetSymbol + ')'
+        if (amt.amount.isZero()) {
+            return 'No Limit'
+        }
+        return this.progress + ' (' + cleanAvaxBN(amt.amount) + ' ' + this.nativeAssetSymbol + ')'
     }
 
     get depositOffer(): DepositOffer | undefined {
