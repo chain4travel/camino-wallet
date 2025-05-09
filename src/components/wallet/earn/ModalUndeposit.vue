@@ -1,7 +1,7 @@
 <template>
     <modal ref="modal" title="Undeposit" @beforeClose="beforeClose">
         <div class="claim-reward-modal">
-            <div v-if="undeposit === 0">
+            <div v-if="undeposit === UNDEPOSIT_STATES.INITIAL">
                 <p class="text--modal">
                     {{
                         $t('earn.rewards.active_earning.unlock_amount', {
@@ -25,9 +25,9 @@
                     ></AvaxInput>
                 </div>
                 <div v-else-if="isMultiSig && !canExecuteMultisigTx">
-                    <AvaxInput :max="maxUndepositable" v-model="amt"></AvaxInput>
+                    <AvaxInput ref="avaxInput" :max="maxUndepositable" v-model="amt"></AvaxInput>
                 </div>
-                <AvaxInput v-else :max="maxUndepositable" v-model="amt"></AvaxInput>
+                <AvaxInput ref="avaxInput" v-else :max="maxUndepositable" v-model="amt"></AvaxInput>
                 <br />
                 <p class="text--modal">
                     <span style="font-weight: bold">{{ formattedAmount(maxUndepositable) }}</span>
@@ -59,7 +59,10 @@
                     }}
                 </Alert>
             </div>
-            <div class="confirmed-claimed" v-else-if="undeposit === 1">
+            <div
+                class="confirmed-claimed"
+                v-else-if="undeposit === UNDEPOSIT_STATES.SIGNATURE_COLLECTED"
+            >
                 <br />
                 <h2>{{ $t('earn.rewards.undeposit_modal.signature_collected') }}</h2>
                 <br />
@@ -86,6 +89,11 @@ import Modal from '../../modals/Modal.vue'
 import CamBtn from '@/components/CamBtn.vue'
 import Alert from '@/components/Alert.vue'
 
+enum UNDEPOSIT_STATES {
+    INITIAL = 0,
+    SIGNATURE_COLLECTED = 1,
+}
+
 @Component({
     components: {
         AvaxInput,
@@ -101,13 +109,16 @@ export default class ModalUndeposit extends Vue {
     @Prop({ required: true }) amount!: BN
     @Prop() canExecuteMultisigTx!: boolean
 
-    undeposit: number = 0
+    undeposit: number = UNDEPOSIT_STATES.INITIAL
     amt: BN = new BN(0)
     // @ts-ignore
     helpers = this.globalHelper()
 
+    UNDEPOSIT_STATES = UNDEPOSIT_STATES
+
     $refs!: {
         modal: Modal
+        avaxInput: AvaxInput
     }
 
     get submitSentence(): string {
@@ -127,7 +138,16 @@ export default class ModalUndeposit extends Vue {
     }
 
     beforeClose() {
-        this.undeposit = 0
+        this.undeposit = UNDEPOSIT_STATES.INITIAL
+        this.resetAmount()
+    }
+
+    resetAmount() {
+        this.amt = new BN(0)
+
+        if (this.$refs.avaxInput) {
+            this.$refs.avaxInput.reset()
+        }
     }
 
     updateBalance(): void {
@@ -194,15 +214,21 @@ export default class ModalUndeposit extends Vue {
                         this.$store.dispatch('Signavault/updateTransaction').then(() => {
                             this.$emit('updateButtonStatus')
                         })
-                        this.undeposit = 1
+                        this.undeposit = UNDEPOSIT_STATES.SIGNATURE_COLLECTED
                     } else {
+                        const currentAmount = this.formattedAmount(this.amt)
+                        const currentSymbol = this.nativeAssetSymbol
+
                         this.helpers.dispatchNotification({
-                            message: `Undeposit Successful for ${this.formattedAmount(this.amt)} ${
-                                this.nativeAssetSymbol
-                            }`,
+                            message: `Undeposit Successful for ${currentAmount} ${currentSymbol}`,
                             type: 'success',
                         })
-                        this.undeposit = 0
+
+                        this.undeposit = UNDEPOSIT_STATES.INITIAL
+
+                        this.$nextTick(() => {
+                            this.resetAmount()
+                        })
                     }
                 })
                 .catch((err) => {
