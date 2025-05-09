@@ -243,16 +243,20 @@ export default class CamOfferCard extends Vue {
 
     get progress(): string {
         const amt = this.amountLimit
+        if (amt.amount.isZero()) {
+            return '0px'
+        }
         const scaledResult = amt.nominator.mul(new BN(100)).mul(new BN(100))
         const preciseResult = scaledResult.div(amt.amount)
-        return amt.amount.isZero() ? '0px' : Number(preciseResult.toString()) / 100 + '%'
+        return Number(preciseResult.toString()) / 100 + '%'
     }
 
     get progressText(): string {
         const amt = this.amountLimit
-        return amt.amount.isZero()
-            ? 'No Limit'
-            : this.progress + '(' + cleanAvaxBN(amt.amount) + this.nativeAssetSymbol + ')'
+        if (amt.amount.isZero()) {
+            return 'No Limit'
+        }
+        return this.progress + ' (' + cleanAvaxBN(amt.amount) + ' ' + this.nativeAssetSymbol + ')'
     }
 
     get depositOffer(): DepositOffer | undefined {
