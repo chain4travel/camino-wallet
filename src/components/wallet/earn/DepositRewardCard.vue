@@ -6,9 +6,11 @@
         :pendingUndepositTx="pendingUndepositTx"
     >
         <div v-if="!isMultiSig" class="button_group">
-            <CamBtn variant="primary" @click="openUndepositModal" :disabled="isUndepositDisabled">
-                {{ $t('earn.rewards.active_earning.undeposit') }}
-            </CamBtn>
+            <undeposit-buttons
+                :reward="reward"
+                :pendingUndepositTx="pendingUndepositTx"
+                @updateDisclaimer="updateDisclaimer"
+            />
             <CamBtn variant="primary" @click="openModal" :disabled="isClaimDisabled">
                 {{ $t('earn.rewards.active_earning.claim') }}
             </CamBtn>
@@ -143,7 +145,6 @@ import { DepositOffer } from '@c4tplatform/caminojs/dist/apis/platformvm/interfa
 import { ModelMultisigTxOwner } from '@c4tplatform/signavaultjs'
 import ModalAbortSigning from './ModalAbortSigning.vue'
 import ModalClaimDepositReward from './ModalClaimDepositReward.vue'
-import ModalUndeposit from './ModalUndeposit.vue'
 import UndepositButtons from './UndepositButtons.vue'
 
 @Component({
@@ -154,7 +155,6 @@ import UndepositButtons from './UndepositButtons.vue'
         CamBtn,
         Alert,
         CamOfferCard,
-        ModalUndeposit,
         UndepositButtons,
     },
 })
@@ -172,10 +172,8 @@ export default class DepositRewardCard extends Vue {
     @Prop() pendingUndepositTx!: UndepositPendingTx
 
     $refs!: {
-        // modal_claim_reward: ModalClaimReward
         modal_claim_reward: ModalClaimDepositReward
         modal_abort_signing: ModalAbortSigning
-        modal_undeposit: ModalUndeposit
     }
 
     @Watch('pendingUndepositTx')
@@ -397,10 +395,6 @@ export default class DepositRewardCard extends Vue {
         return this.reward.deposit.unlockableAmount.isZero()
     }
 
-    get initiatedUnlockAmount(): string {
-        return this.pendingUndepositTx.amountToUndeposit
-    }
-
     cleanAvaxBN(val: BN): string {
         return cleanAvaxBN(val)
     }
@@ -408,11 +402,6 @@ export default class DepositRewardCard extends Vue {
     openModal() {
         this.disclamer = false
         this.$refs.modal_claim_reward.open()
-    }
-
-    openUndepositModal() {
-        this.disclamer = false
-        this.$refs.modal_undeposit.open()
     }
 }
 </script>
