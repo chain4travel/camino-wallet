@@ -9,7 +9,7 @@
                         :placeholder="$t('create_multisig.name')"
                         :error="nameLengthError"
                         :errorMessage="$t('create_multisig.errors.msig_name')"
-                        :disabled="mode !== 'EDIT' || pendingSendMultisigTX"
+                        :disabled="mode !== 'EDIT' || pendingEditMultisigTX"
                     />
                     <Alert variant="warning" v-if="mode === 'EDIT'">
                         {{ $t('create_multisig.alert.wize_name') }}
@@ -40,14 +40,14 @@
                             class="full-width-input"
                             :placeholder="`Owner ${index + 1} Address`"
                             v-model="address.address"
-                            :disabled="mode !== 'EDIT' || pendingSendMultisigTX"
+                            :disabled="mode !== 'EDIT' || pendingEditMultisigTX"
                             :error="!isValidAddress(address.address)"
                         />
                         <CamInput
                             class="msig-address-name"
                             :placeholder="`Owner ${index + 1} Name`"
                             v-model="address.name"
-                            :disabled="mode !== 'EDIT' || pendingSendMultisigTX"
+                            :disabled="mode !== 'EDIT' || pendingEditMultisigTX"
                         />
                     </div>
                     <button
@@ -93,28 +93,28 @@
                     v-model="threshold"
                     :error="thresholdError !== ''"
                     :errorMessage="getThresholdErrorMessage"
-                    :disabled="mode !== 'EDIT' || pendingSendMultisigTX"
+                    :disabled="mode !== 'EDIT' || pendingEditMultisigTX"
                 />
             </div>
         </div>
 
         <div class="alert-action_buttons">
             <div class="action_buttons" v-if="needSignatures() && alreadySigned()">
-                <CamBtn variant="negative" @click="abortEditMsig">
+                <CamBtn variant="negative" @click="abortEditMsig(pendingEditMultisigTX?.tx)">
                     {{ $t('edit_multisig.abort') }}
                 </CamBtn>
                 <CamBtn variant="primary" @click="signEditMsig" :disabled="true">
                     {{
                         $t('edit_multisig.signed_edit_multisig', {
                             numberOfSignatures,
-                            threshold: pendingSendMultisigTX?.tx?.threshold,
+                            threshold: pendingEditMultisigTX?.tx?.threshold,
                         })
                     }}
                 </CamBtn>
             </div>
 
             <div class="action_buttons" v-else-if="needSignatures() && !alreadySigned()">
-                <CamBtn variant="negative" @click="abortEditMsig">
+                <CamBtn variant="negative" @click="abortEditMsig(pendingEditMultisigTX?.tx)">
                     {{ $t('edit_multisig.abort') }}
                 </CamBtn>
                 <CamBtn variant="primary" :loading="loading" @click="signMultisigTx">
@@ -123,7 +123,7 @@
             </div>
 
             <div class="action_buttons" v-else-if="canExecuteMultisigTx()">
-                <CamBtn variant="negative" @click="abortEditMsig">
+                <CamBtn variant="negative" @click="abortEditMsig(pendingEditMultisigTX?.tx)">
                     {{ $t('edit_multisig.abort') }}
                 </CamBtn>
                 <CamBtn variant="primary" :loading="loading" @click="signEditMsig">
@@ -142,6 +142,16 @@
                     {{ $t('edit_multisig.cancel') }}
                 </CamBtn>
                 <CamBtn
+                    v-if="!canSaveEditMultisigTx"
+                    variant="primary"
+                    @click="abortAndSaveEditMultisig"
+                    :loading="loading"
+                    :disabled="!msigEdited || disableMsigCreation"
+                >
+                    {{ $t('edit_multisig.abort_and_save') }}
+                </CamBtn>
+                <CamBtn
+                    v-else
                     variant="primary"
                     @click="saveEditMsig"
                     :loading="loading"
@@ -151,9 +161,16 @@
                 </CamBtn>
             </div>
 
-            <Alert variant="warning" v-if="!pendingSendMultisigTX || canExecuteMultisigTx()">
-                {{ $t('create_multisig.disclamer', { fee: feeAmt, symbol: nativeAssetSymbol }) }}
-            </Alert>
+            <div class="alert--box">
+                <Alert variant="warning" v-if="!canSaveEditMultisigTx && mode === 'EDIT'">
+                    {{ $t('edit_multisig.save_edit_multisig_after_removal_of_pendingtx') }}
+                </Alert>
+                <Alert variant="warning" v-if="!pendingEditMultisigTX || canExecuteMultisigTx()">
+                    {{
+                        $t('create_multisig.disclamer', { fee: feeAmt, symbol: nativeAssetSymbol })
+                    }}
+                </Alert>
+            </div>
         </div>
     </div>
 </template>
@@ -177,7 +194,7 @@ import { GetTxStatusResponse, UnsignedTx } from '@c4tplatform/caminojs/dist/apis
 import { MultisigAliasTx } from '@c4tplatform/caminojs/dist/apis/platformvm/multisigaliastx'
 import { SignatureError } from '@c4tplatform/caminojs/dist/common'
 import { ONEAVAX } from '@c4tplatform/caminojs/dist/utils'
-import { ModelMultisigTxOwner } from '@c4tplatform/signavaultjs'
+import { ModelMultisigTx, ModelMultisigTxOwner } from '@c4tplatform/signavaultjs'
 import { TranslateResult } from 'vue-i18n'
 import { Component, Vue, Watch } from 'vue-property-decorator'
 import { WalletHelper } from '../helpers/wallet_helper'
@@ -288,8 +305,19 @@ export default class EditMultisigWallet extends Vue {
         return signers
     }
 
-    get pendingSendMultisigTX(): SignavaultTx | undefined {
-        return this.$store.getters['Signavault/transactions'].find(
+    get pendingSignavaultTXs(): SignavaultTx[] {
+        return this.$store.getters['Signavault/transactions']
+    }
+
+    get canSaveEditMultisigTx(): boolean {
+        if (!this.pendingEditMultisigTX && this.pendingSignavaultTXs?.length > 0) {
+            return false
+        }
+        return true
+    }
+
+    get pendingEditMultisigTX(): SignavaultTx | undefined {
+        return this.pendingSignavaultTXs.find(
             (item: any) =>
                 item?.tx?.alias === this.activeWallet?.getAllAddressesP()[0] &&
                 WalletHelper.getUnsignedTxType(item?.tx?.unsignedTx) === 'MultisigAliasTx'
@@ -338,7 +366,7 @@ export default class EditMultisigWallet extends Vue {
 
     @Watch('activeWallet')
     @Watch('activeNetwork')
-    @Watch('pendingSendMultisigTX')
+    @Watch('pendingEditMultisigTX')
     async getAliasInfos() {
         this.mode = 'VIEW'
 
@@ -350,11 +378,11 @@ export default class EditMultisigWallet extends Vue {
     async setAliasInfoFromActiveWallet() {
         const hrp = ava.getHRP()
 
-        // Check if pendingSendMultisigTX exists
-        if (this.pendingSendMultisigTX) {
+        // Check if pendingEditMultisigTX exists
+        if (this.pendingEditMultisigTX) {
             let unsignedTx = new UnsignedTx()
             // @ts-ignore
-            unsignedTx.fromBuffer(Buffer.from(this.pendingSendMultisigTX.tx?.unsignedTx, 'hex'))
+            unsignedTx.fromBuffer(Buffer.from(this.pendingEditMultisigTX.tx?.unsignedTx, 'hex'))
 
             const utx = unsignedTx.getTransaction() as MultisigAliasTx
             const alias = utx.getMultisigAlias()
@@ -434,12 +462,12 @@ export default class EditMultisigWallet extends Vue {
     }
 
     txOwners(): ModelMultisigTxOwner[] | [] {
-        return this.pendingSendMultisigTX?.tx?.owners ?? []
+        return this.pendingEditMultisigTX?.tx?.owners ?? []
     }
 
     canExecuteMultisigTx(): boolean {
         let signers = 0
-        let threshold = this.pendingSendMultisigTX?.tx?.threshold
+        let threshold = this.pendingEditMultisigTX?.tx?.threshold
         const txOwners = this.txOwners()
 
         txOwners.forEach((owner) => {
@@ -451,7 +479,7 @@ export default class EditMultisigWallet extends Vue {
     }
 
     needSignatures(): boolean {
-        let threshold = this.pendingSendMultisigTX?.tx?.threshold
+        let threshold = this.pendingEditMultisigTX?.tx?.threshold
         let numberOfSignatures = this.numberOfSignatures
 
         if (threshold && numberOfSignatures < threshold) return true
@@ -493,7 +521,7 @@ export default class EditMultisigWallet extends Vue {
         const alias = this.activeWallet?.getStaticAddress('P')
 
         // if only address name changed, update alias in local storage
-        if (this.multisigAddressNamesEdited && !this.pendingSendMultisigTX) {
+        if (this.multisigAddressNamesEdited && !this.pendingEditMultisigTX) {
             // update only local storage
             this.updateMultisigAccountInLocalStorage()
             this.mode = 'VIEW'
@@ -504,10 +532,9 @@ export default class EditMultisigWallet extends Vue {
             return
         }
 
-        if (!this.pendingSendMultisigTX) {
+        if (!this.pendingEditMultisigTX) {
             try {
                 this.loading = true
-                let values = await ava.PChain().getMultisigAlias(alias)
                 let wallet = this.activeWallet as MultisigWallet
                 await wallet.setKey()
                 const result = await WalletHelper.sendMultisigAliasTxUpdate(
@@ -609,12 +636,13 @@ export default class EditMultisigWallet extends Vue {
         }
     }
 
-    async abortEditMsig() {
+    async abortEditMsig(tx?: ModelMultisigTx) {
         try {
             this.loading = true
             const wallet = this.activeWallet as MultisigWallet
-            if (this.pendingSendMultisigTX) {
-                await wallet.cancelExternal(this.pendingSendMultisigTX?.tx)
+
+            if (tx) {
+                await wallet.cancelExternal(tx)
                 await this.$store.dispatch('Signavault/updateTransaction')
                 this.getAliasInfos()
                 this.mode = 'VIEW'
@@ -631,15 +659,19 @@ export default class EditMultisigWallet extends Vue {
         this.mode = 'VIEW'
     }
 
+    async abortAndSaveEditMultisig() {
+        this.abortEditMsig(this.pendingSignavaultTXs[0].tx).then(() => this.saveEditMsig())
+    }
+
     async signMultisigTx() {
         // @ts-ignore
         let { dispatchNotification } = this.globalHelper()
         const wallet = this.activeWallet
         if (!wallet || !(wallet instanceof MultisigWallet))
             return console.debug('MultiSigTx::sign: Invalid wallet')
-        if (!this.pendingSendMultisigTX) return console.debug('MultiSigTx::sign: Invalid Tx')
+        if (!this.pendingEditMultisigTX) return console.debug('MultiSigTx::sign: Invalid Tx')
         try {
-            await wallet.addSignatures(this.pendingSendMultisigTX?.tx)
+            await wallet.addSignatures(this.pendingEditMultisigTX?.tx)
             dispatchNotification({
                 message: this.$t('notifications.multisig_transaction_saved'),
                 type: 'success',
@@ -659,11 +691,11 @@ export default class EditMultisigWallet extends Vue {
         const wallet = this.activeWallet
         if (!wallet || !(wallet instanceof MultisigWallet))
             return console.error('MultiSigTx::sign: Invalid wallet')
-        if (!this.pendingSendMultisigTX) return console.error('MultiSigTx::sign: Invalid Tx')
+        if (!this.pendingEditMultisigTX) return console.error('MultiSigTx::sign: Invalid Tx')
         try {
             const msigAlias = this.activeWallet?.getStaticAddress('P')
             await this.updateMultisigTxDetails()
-            const txId = await wallet.issueExternal(this.pendingSendMultisigTX?.tx)
+            const txId = await wallet.issueExternal(this.pendingEditMultisigTX?.tx)
             this.waitTxConfirm(txId)
             this.$store.dispatch('Signavault/updateTransaction')
             dispatchNotification({
@@ -978,10 +1010,11 @@ input {
     gap: 1.5rem;
 }
 
-.delete_info {
+.alert--box {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    max-width: 600px;
 }
 
 [data-theme='light'] {

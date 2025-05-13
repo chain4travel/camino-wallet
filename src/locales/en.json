@@ -1081,6 +1081,8 @@
         "save_edit_multisig": "Save Multisignature Wallet",
         "sign_edit_multisig": "Sign edited multisignature wallet",
         "execute_edit_multisig": "Execute transaction",
+        "save_edit_multisig_after_removal_of_pendingtx": "Please note that every pending multisignature transaction pending for signing will automatically be removed when modifying the participants or threshold, as the transaction is not valid any more.",
+        "abort_and_save": "Abort And Save Multisignature Wallet",
         "signed_edit_multisig": "Signed {numberOfSignatures} out of {threshold} required signatures",
         "abort": "Abort",
         "cancel": "Cancel",
