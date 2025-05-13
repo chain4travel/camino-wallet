@@ -3,6 +3,11 @@ export enum KYC_VARIANT {
     KYC_BASIC = 'kyc_basic',
     KYB_BASIC = 'kyb_basic',
 }
+
+// Constants for ERC interface IDs
+export const ERC721_INTERFACE_ID = '0x80ac58cd'
+export const ERC1155_INTERFACE_ID = '0xd9b67a26'
+
 export const MINUTE_MS = 60000
 export const HOUR_MS = MINUTE_MS * 60
 export const DAY_MS = HOUR_MS * 24
