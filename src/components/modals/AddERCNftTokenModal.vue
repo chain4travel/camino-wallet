@@ -45,7 +45,6 @@ import IERCNftAbi from '@/abi/IERC721MetaData.json'
 import IERC1155Abi from '@/abi/IERC1155MetaData.json'
 import { ERCNftTokenInput } from '@/store/modules/assets/modules/types'
 import ERCNftToken, { ERC721ID, ERC1155ID } from '@/js/ERCNftToken'
-import { CF_IPFS_BASE } from '@/constants'
 
 @Component({
     components: {

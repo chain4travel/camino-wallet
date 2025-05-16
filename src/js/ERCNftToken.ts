@@ -4,7 +4,7 @@ import { AbiItem, Contract, web3 } from '@/evm'
 import IERC721Abi from '@/abi/IERC721MetaData.json'
 import IERC1155Abi from '@/abi/IERC1155MetaData.json'
 import { ERCNftBalance, ERCNftTokenInput } from '@/store/modules/assets/modules/types'
-import { CF_IPFS_BASE, ERC1155_INTERFACE_ID, ERC721_INTERFACE_ID } from '@/constants'
+import { CF_IPFS_BASE } from '@/constants'
 
 interface TokenDataCache {
     [index: number]: string
@@ -149,8 +149,7 @@ class ERCNftToken {
                 // First check if the contract is deployed on this network
                 try {
                     // Check if the contract supports the correct interface for its type
-                    const interfaceId =
-                        this.data.type === 'ERC1155' ? ERC1155_INTERFACE_ID : ERC721_INTERFACE_ID
+                    const interfaceId = this.data.type === 'ERC1155' ? ERC1155ID : ERC721ID
                     await this.contract.methods.supportsInterface(interfaceId).call()
 
                     if (this.data.type === 'ERC1155') {
@@ -175,23 +174,15 @@ class ERCNftToken {
                                     tokenId: token,
                                     quantity: owner.toLowerCase() === address.toLowerCase() ? 1 : 0,
                                 })
-                            } catch (err: any) {
-                                if (
-                                    err.message.includes(
-                                        'Returned error: execution reverted: ERC721: invalid token ID'
-                                    )
-                                ) {
-                                    res.push({
-                                        tokenId: token,
-                                        quantity: 0,
-                                    })
-                                } else {
-                                    console.error('Error checking token ownership:', err)
-                                    res.push({
-                                        tokenId: token,
-                                        quantity: 0,
-                                    })
-                                }
+                            } catch (err) {
+                                console.debug(
+                                    `Token ${token} ownership check failed, treating as not owned:`,
+                                    err
+                                )
+                                res.push({
+                                    tokenId: token,
+                                    quantity: 0,
+                                })
                             }
                         }
                     }

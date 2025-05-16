@@ -178,7 +178,7 @@ export default class DepositRewardCard extends Vue {
 
     @Watch('pendingUndepositTx')
     watchPendingTX() {
-        if (this.pendingUndepositTx.pendingTx) {
+        if (this.pendingUndepositTx && this.pendingUndepositTx.pendingTx) {
             this.disclaimerDisplay = false
         }
     }
@@ -190,8 +190,8 @@ export default class DepositRewardCard extends Vue {
         this.now = Date.now()
     }
 
-    updateDisclaimer() {
-        this.disclaimerDisplay = !this.disclaimerDisplay
+    updateDisclaimer(value: boolean) {
+        this.disclaimerDisplay = value
     }
 
     created() {
@@ -389,10 +389,6 @@ export default class DepositRewardCard extends Vue {
             (this.$store.getters['Signavault/transactions'].length > 0 &&
                 !this.pendingClaimMultisigTx)
         )
-    }
-
-    get isUndepositDisabled() {
-        return this.reward.deposit.unlockableAmount.isZero()
     }
 
     cleanAvaxBN(val: BN): string {

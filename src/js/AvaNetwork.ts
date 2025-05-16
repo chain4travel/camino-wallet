@@ -75,6 +75,7 @@ class AvaNetwork {
                 },
                 {
                     withCredentials: false,
+                    // We first try without credentials and only enable them if this fails
                 }
             )
             this.withCredentials = false
