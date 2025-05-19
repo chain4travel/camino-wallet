@@ -589,7 +589,7 @@
                 "undeposit": "Undeposit",
                 "initiated_undeposit": "Initiated Undeposit Amount",
                 "unlock_amount": "How much {nativeAssetSymbol} you would like to unlock?",
-                "total_to_unlock": "Total un-depositable {nativeAssetSymbol} availble",
+                "total_to_unlock": "Total undepositable {nativeAssetSymbol} available",
                 "total_to_unlock_check": "Total unlocked amount is less than expected"
             },
             "pending_rewards": {
