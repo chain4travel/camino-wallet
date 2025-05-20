@@ -247,7 +247,7 @@ export default class UndepositButtons extends Vue {
             await this.$store.dispatch('Assets/updateUTXOs')
             await this.$store.dispatch('Platform/update')
             dispatchNotification({
-                message: `Deposit Successful (TX: ${txID})`,
+                message: `Undeposit Successful (TX: ${txID})`,
                 type: 'success',
             })
             await this.$store.dispatch('Signavault/updateTransaction')
