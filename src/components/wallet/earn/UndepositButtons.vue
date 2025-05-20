@@ -126,12 +126,12 @@ export default class UndepositButtons extends Vue {
     }
 
     initMultisigTx() {
-        this.$emit('updateDisclaimer')
+        this.$emit('updateDisclaimer', true)
         this.initMultisig = true
     }
 
     cancelInitMultisigTx() {
-        this.$emit('updateDisclaimer')
+        this.$emit('updateDisclaimer', false)
         this.initMultisig = false
     }
 
@@ -289,7 +289,7 @@ export default class UndepositButtons extends Vue {
     closeUndepositModal() {
         if (this.initMultisig) {
             this.initMultisig = false
-            this.$emit('updateDisclaimer')
+            this.$emit('updateDisclaimer', false)
         }
         this.$refs.modal_undeposit.close()
     }
