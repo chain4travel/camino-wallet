@@ -139,55 +139,79 @@ class ERCNftToken {
     }
 
     async getAllTokensIds(address: string): Promise<ERCNftBalance[]> {
-        if (!this.canSupport || this.data.ercTokenIds.length == 0) return []
+        // Early exit if not supported or no token IDs
+        if (!this.canSupport || this.data.ercTokenIds.length === 0) return []
+
         let res: ERCNftBalance[] = []
 
-        if (this.contract)
+        if (this.contract) {
             try {
-                if (this.data.type === 'ERC1155') {
-                    const balances = await this.contract.methods
-                        .balanceOfBatch(
-                            Array(this.data.ercTokenIds.length).fill(address),
-                            this.data.ercTokenIds
-                        )
-                        .call()
-                    balances.forEach((s: string, i: number) => {
-                        res.push({
-                            tokenId: this.data.ercTokenIds[i],
-                            quantity: parseInt(s),
-                        })
-                    })
-                } else {
-                    for (const token of this.data.ercTokenIds) {
-                        try {
+                // First check if the contract is deployed on this network
+                try {
+                    // Check if the contract supports the correct interface for its type
+                    const interfaceId = this.data.type === 'ERC1155' ? ERC1155ID : ERC721ID
+                    await this.contract.methods.supportsInterface(interfaceId).call()
+
+                    if (this.data.type === 'ERC1155') {
+                        const balances = await this.contract.methods
+                            .balanceOfBatch(
+                                Array(this.data.ercTokenIds.length).fill(address),
+                                this.data.ercTokenIds
+                            )
+                            .call()
+
+                        balances.forEach((s: string, i: number) => {
                             res.push({
-                                tokenId: token,
-                                quantity:
-                                    (
-                                        await this.contract?.methods.ownerOf(token).call()
-                                    ).toLowerCase() === address
-                                        ? 1
-                                        : 0,
+                                tokenId: this.data.ercTokenIds[i],
+                                quantity: parseInt(s),
                             })
-                        } catch (err: any) {
-                            if (
-                                err.message.includes(
-                                    'Returned error: execution reverted: ERC721: invalid token ID'
+                        })
+                    } else {
+                        for (const token of this.data.ercTokenIds) {
+                            try {
+                                const owner = await this.contract?.methods.ownerOf(token).call()
+                                res.push({
+                                    tokenId: token,
+                                    quantity: owner.toLowerCase() === address.toLowerCase() ? 1 : 0,
+                                })
+                            } catch (err) {
+                                console.debug(
+                                    `Token ${token} ownership check failed, treating as not owned:`,
+                                    err
                                 )
-                            ) {
                                 res.push({
                                     tokenId: token,
                                     quantity: 0,
                                 })
-                            } else {
-                                console.error(err)
                             }
                         }
                     }
+                } catch (interfaceErr) {
+                    console.warn(
+                        `Contract does not exist or is not a valid ${this.data.type} on the current network`
+                    )
+                    // Return empty balances for all tokenIds
+                    return this.data.ercTokenIds.map((tokenId) => ({
+                        tokenId,
+                        quantity: 0,
+                    }))
                 }
             } catch (e) {
-                console.error(e)
+                console.error('Error in getAllTokensIds:', e)
+                // Return empty balances as fallback
+                return this.data.ercTokenIds.map((tokenId) => ({
+                    tokenId,
+                    quantity: 0,
+                }))
             }
+        } else {
+            // If no contract instance, return all tokens with zero balance
+            return this.data.ercTokenIds.map((tokenId) => ({
+                tokenId,
+                quantity: 0,
+            }))
+        }
+
         return res
     }
 

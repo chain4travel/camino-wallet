@@ -74,12 +74,13 @@ class AvaNetwork {
                     method: 'info.getNetworkID',
                 },
                 {
-                    withCredentials: true,
+                    withCredentials: false,
+                    // We first try without credentials and only enable them if this fails
                 }
             )
-            this.withCredentials = true
-        } catch (e) {
             this.withCredentials = false
+        } catch (e) {
+            this.withCredentials = true
         }
     }
 

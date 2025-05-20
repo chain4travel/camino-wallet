@@ -362,15 +362,25 @@ export default class ModalDepositFunds extends Vue {
         })
         return isSigned
     }
+
+    get platformUnlocked(): BN {
+        return this.$store.getters['Assets/walletPlatformBalanceUnlocked']
+    }
+
     get interestRateBase(): number {
         return 365 * 24 * 60 * 60
     }
+
     get currentAmount(): string {
         return bnToBig(this.amt, 9).toString()
     }
+
     get maxLeftToDeposit(): BN {
         if (!this.offer.totalMaxAmount.isZero()) {
             return this.offer.totalMaxAmount.sub(this.offer.depositedAmount)
+        }
+        if (this.offer.totalMaxRewardAmount.isZero()) {
+            return this.platformUnlocked.sub(ava.PChain().getTxFee())
         }
         let rest = this.offer.totalMaxRewardAmount.sub(this.offer.rewardedAmount)
         let amountLeftToDeposit = new BN(
