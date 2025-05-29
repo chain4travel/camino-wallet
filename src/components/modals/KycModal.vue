@@ -46,7 +46,7 @@
 </template>
 <script lang="ts">
 import Modal from '@/components/modals/Modal.vue'
-import { KYC_VARIANT, kycStyleDay, kycStyleNight } from '@/constants'
+import { KYC_VARIANT } from '@/constants'
 import MnemonicWallet from '@/js/wallets/MnemonicWallet'
 import { SingletonWallet } from '@/js/wallets/SingletonWallet'
 import { WalletNameType, WalletType } from '@/js/wallets/types'
@@ -76,7 +76,6 @@ export default class KycModal extends Vue {
     /**/
     modalLight: string = '#FFF'
     modalDark: string = '#242729'
-    background: string = 'body {background-color: red !important;}'
     verficationCompleted: boolean = false
     /**/
     userDataSubmitted: boolean = false
@@ -85,14 +84,7 @@ export default class KycModal extends Vue {
         email: '',
         phone: '',
     }
-    @Watch('themeSelected', { immediate: true })
-    onthemechange(val: string) {
-        if (val === 'dark') {
-            this.background = kycStyleNight
-        } else {
-            this.background = kycStyleDay
-        }
-    }
+
     get walletType(): WalletNameType {
         return this.wallet.type
     }
@@ -114,9 +106,6 @@ export default class KycModal extends Vue {
             .withConf({
                 email: applicantEmail,
                 phone: applicantPhone,
-                uiConf: {
-                    customCssStr: this.background,
-                },
             })
             .withOptions({ addViewportTag: false, adaptIframeHeight: true })
             .on('idCheck.applicantStatus', async (applicantStatus) => {
