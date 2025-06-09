@@ -190,7 +190,7 @@ const network_module: Module<NetworkState, RootState> = {
             dispatch('updateTxFee')
             dispatch('Accounts/updateKycStatus', null, { root: true })
             // Update tx history
-            this.dispatch('History/getAliasChains')
+            await this.dispatch('History/getAliasChains')
             await dispatch('Signavault/updateTransaction', undefined, { root: true })
             this.dispatch('History/updateTransactionHistory', null, { root: true })
 

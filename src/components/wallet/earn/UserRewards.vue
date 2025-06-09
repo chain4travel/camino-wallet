@@ -22,7 +22,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 
 import DepositRewardCard from '@/components/wallet/earn/DepositRewardCard.vue'
 import { PlatformRewards } from '@/store/modules/platform/types'
@@ -70,6 +70,19 @@ export default class UserRewards extends Vue {
         return this.platformRewards.depositRewards.length > 0
     }
 
+    @Watch('activeWallet')
+    onActiveWalletChange() {
+        console.log('Active wallet changed, updating rewards...')
+        this.$store.dispatch('Assets/updateUTXOs').then(() => {
+            this.$store.dispatch('Platform/updateAllDepositOffers').then(async () => {
+                await Promise.all([
+                    this.$store.dispatch('Platform/updateRewards'),
+                    this.$store.dispatch('Signavault/updateTransaction'),
+                    this.updateExpiredDepositRewards(),
+                ])
+            })
+        })
+    }
     get hasPendingRewards(): boolean {
         return this.platformRewards.treasuryRewards.length > 0
     }
