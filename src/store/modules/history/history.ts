@@ -120,13 +120,18 @@ const history_module: Module<HistoryState, RootState> = {
             if (!network?.explorerUrl) {
                 return
             }
-            let res = await getAliasChains()
-            if (res.chains) {
-                let chains = Object.entries(res.chains).map(([, value]) => {
-                    let v = value as Chain
-                    return { chainAlias: v.chainAlias, chainID: v.chainID }
-                })
-                state.chains = chains
+            try {
+                let res = await getAliasChains()
+                if (res.chains) {
+                    let chains = Object.entries(res.chains).map(([, value]) => {
+                        let v = value as Chain
+                        return { chainAlias: v.chainAlias, chainID: v.chainID }
+                    })
+                    state.chains = chains
+                }
+            } catch (e) {
+                console.error('Error fetching alias chains:', e)
+                return
             }
         },
     },
