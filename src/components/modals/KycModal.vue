@@ -108,10 +108,10 @@ export default class KycModal extends Vue {
                 phone: applicantPhone,
             })
             .withOptions({ addViewportTag: false, adaptIframeHeight: true })
-            .on('idCheck.applicantStatus', async (applicantStatus) => {
-                await this.$store.dispatch('Accounts/updateKycStatus')
+            .on('idCheck.onApplicantStatusChanged', async (applicantStatus) => {
                 if (applicantStatus.reviewStatus === 'completed') {
                     this.verficationCompleted = true
+                    await this.$store.dispatch('Accounts/updateKycStatus')
                 }
             })
             .build()
@@ -148,12 +148,13 @@ export default class KycModal extends Vue {
     }
 
     async close() {
-        await this.$store.dispatch('Accounts/updateKycStatus')
         this.$refs.modal.close()
     }
 
-    beforeClose() {
+    async beforeClose() {
         this.userDataSubmitted = false
+        await this.$store.dispatch('Accounts/updateKycStatus')
+        //@ts-ignore
         if (this.globalHelper().closeSelect) this.globalHelper().closeSelect()
         this.userData = {
             email: '',
