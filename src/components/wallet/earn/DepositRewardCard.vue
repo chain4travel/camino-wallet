@@ -4,9 +4,11 @@
         type="reward"
         :reward="reward"
         :pendingUndepositTx="pendingUndepositTx"
+        :isUndepositDisabled="isUndepositDisabled"
     >
         <div v-if="!isMultiSig" class="button_group">
             <undeposit-buttons
+                v-if="!isUndepositDisabled"
                 :reward="reward"
                 :pendingUndepositTx="pendingUndepositTx"
                 @updateDisclaimer="updateDisclaimer"
@@ -78,6 +80,7 @@
             </div>
             <div v-else class="button_group">
                 <undeposit-buttons
+                    v-if="!isUndepositDisabled"
                     :reward="reward"
                     :pendingUndepositTx="pendingUndepositTx"
                     @updateDisclaimer="updateDisclaimer"
@@ -128,7 +131,12 @@ import 'reflect-metadata'
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator'
 
 import ModalClaimReward from '@/components/modals/ClaimRewardModal.vue'
-import { cleanAvaxBN, UndepositPendingTx } from '@/helpers/helper'
+import {
+    cleanAvaxBN,
+    getNodeVersion,
+    isVersionSupported,
+    UndepositPendingTx,
+} from '@/helpers/helper'
 import { PlatformRewardDeposit } from '@/store/modules/platform/types'
 
 import { bintools } from '@/AVA'
@@ -146,6 +154,7 @@ import { ModelMultisigTxOwner } from '@c4tplatform/signavaultjs'
 import ModalAbortSigning from './ModalAbortSigning.vue'
 import ModalClaimDepositReward from './ModalClaimDepositReward.vue'
 import UndepositButtons from './UndepositButtons.vue'
+import { AvaNetwork } from '@/js/AvaNetwork'
 
 @Component({
     components: {
@@ -167,6 +176,7 @@ export default class DepositRewardCard extends Vue {
     helpers = this.globalHelper()
     signedclaimedAmount: BN = new BN(0)
     disclaimerDisplay: boolean = false
+    nodeVersion: string | null = null
     // signedDepositID: string = ''
     @Prop() reward!: PlatformRewardDeposit
     @Prop() pendingUndepositTx!: UndepositPendingTx
@@ -194,10 +204,12 @@ export default class DepositRewardCard extends Vue {
         this.disclaimerDisplay = value
     }
 
-    created() {
+    async created() {
         this.intervalID = setInterval(() => {
             this.updateNow()
         }, 2000)
+
+        await this.checkNodeVersion()
     }
 
     destroyed() {
@@ -210,6 +222,31 @@ export default class DepositRewardCard extends Vue {
 
     get unlockableAmount(): BN {
         return this.reward.deposit.unlockableAmount
+    }
+
+    get isUndepositDisabled(): boolean {
+        if (!this.nodeVersion || this.nodeVersion === 'timeout') return true
+        return !isVersionSupported(this.nodeVersion)
+    }
+
+    get activeNetwork(): null | AvaNetwork {
+        return this.$store?.state?.Network?.selectedNetwork
+    }
+
+    @Watch('activeNetwork')
+    async checkNodeVersionOnNetworkChange() {
+        if (this.activeNetwork?.url) {
+            await this.checkNodeVersion()
+        }
+    }
+
+    async checkNodeVersion() {
+        try {
+            this.nodeVersion = await getNodeVersion(this.activeNetwork?.url as string)
+        } catch (error) {
+            console.error('Failed to check node version:', error)
+            this.nodeVersion = null
+        }
     }
 
     get activeWallet(): WalletType {
