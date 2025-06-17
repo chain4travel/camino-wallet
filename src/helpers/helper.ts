@@ -13,12 +13,52 @@ import { MultisigTx as SignavaultTx } from '@/store/modules/signavault/types'
 
 import { Buffer, BN } from '@c4tplatform/caminojs/dist'
 import createHash from 'create-hash'
+import axios from 'axios'
 
 export interface UndepositPendingTx {
     hasSufficientUnlocked: boolean
     amountToUndeposit: BN
     depositTxIDs: string[]
     pendingTx: SignavaultTx
+}
+
+export function compareVersions(version1: string, version2: string): number {
+    const v1Parts = version1.split('.').map(Number)
+    const v2Parts = version2.split('.').map(Number)
+
+    for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+        const v1Part = v1Parts[i] || 0
+        const v2Part = v2Parts[i] || 0
+
+        if (v1Part > v2Part) return 1
+        if (v1Part < v2Part) return -1
+    }
+
+    return 0
+}
+
+export function isVersionSupported(version: string): boolean {
+    const minVersion = '1.2.0'
+    return compareVersions(version, minVersion) >= 0
+}
+
+export async function getNodeVersion(url: string, credential = false): Promise<string | null> {
+    try {
+        const response = await axios.post(
+            `${url}/ext/info`,
+            { jsonrpc: '2.0', id: 1, method: 'info.getNodeVersion' },
+            { withCredentials: credential, timeout: 60000 }
+        )
+
+        const versionString = response.data.result.version
+        const versionMatch = versionString.match(/\/(\d+\.\d+\.\d+)/)
+        return versionMatch ? versionMatch[1] : null
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
+            return 'timeout'
+        }
+        return null
+    }
 }
 
 function bnToBig(val: BN, denomination = 0): Big {

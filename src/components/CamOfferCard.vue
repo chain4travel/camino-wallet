@@ -82,7 +82,7 @@
                             {{ cleanAvaxBN(reward.deposit.amount) }} {{ nativeAssetSymbol }}
                         </p>
                     </div>
-                    <div>
+                    <div v-if="!isUndepositDisabled">
                         <label>{{ $t('earn.rewards.active_earning.undepositable_amount') }}:</label>
                         <p class="reward">
                             {{ cleanAvaxBN(reward?.deposit?.unlockableAmount) }}
@@ -95,7 +95,7 @@
                             {{ cleanAvaxBN(reward.amountToClaim) }} {{ nativeAssetSymbol }}
                         </p>
                     </div>
-                    <div>
+                    <div v-if="!isUndepositDisabled">
                         <label>{{ $t('earn.rewards.active_earning.already_undeposited') }}:</label>
                         <p class="reward">
                             {{ cleanAvaxBN(reward?.deposit?.unlockedAmount) }}
@@ -115,7 +115,10 @@
                             {{ updateMultisigTxDetails() }} {{ nativeAssetSymbol }}
                         </p>
                     </div>
-                    <div class="reward_row" v-if="pendingUnlockAmount !== null">
+                    <div
+                        class="reward_row"
+                        v-if="pendingUnlockAmount !== null && !isUndepositDisabled"
+                    >
                         <label>{{ $t('earn.rewards.active_earning.initiated_undeposit') }}:</label>
                         <p class="reward">{{ pendingUnlockAmount }} {{ nativeAssetSymbol }}</p>
                     </div>
@@ -167,6 +170,7 @@ export default class CamOfferCard extends Vue {
     @Prop() readonly reward!: PlatformRewardDeposit
     @Prop() readonly treasuryRewards!: PlatformRewardTreasury
     @Prop() readonly pendingUndepositTx!: UndepositPendingTx | null
+    @Prop() readonly isUndepositDisabled!: boolean
 
     get isOffer() {
         return this.type === 'offer'
