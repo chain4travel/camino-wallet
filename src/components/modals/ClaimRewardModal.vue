@@ -115,6 +115,8 @@ export default class ModalClaimReward extends Vue {
         await this.$store.dispatch('Platform/updateRewards')
     }
     async confirmClaim() {
+        // @ts-ignore
+        let { dispatchNotification } = this.globalHelper()
         const wallet: WalletType = this.$store.state.activeWallet
         const hrp = ava.getHRP()
         const rewardOwner = new OutputOwners(
@@ -147,6 +149,12 @@ export default class ModalClaimReward extends Vue {
                     msgText: 'Transaction Recorded.',
                 })
             } else {
+                const err = error instanceof Error ? error : new Error('Unknown error')
+                const errorMessage = err?.message
+                dispatchNotification({
+                    message: errorMessage,
+                    type: 'error',
+                })
                 console.error(error)
                 this.claimed = false
                 return

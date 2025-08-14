@@ -155,6 +155,12 @@ export default class ModalClaimReward extends Vue {
                 })
                 this.$emit('beforeCloseModal', false)
             } else {
+                const error = e instanceof Error ? e : new Error('Unknown error')
+                const errorMessage = error?.message
+                dispatchNotification({
+                    message: errorMessage,
+                    type: 'error',
+                })
                 this.claimed = false
             }
         }
