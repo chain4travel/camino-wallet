@@ -248,8 +248,9 @@ export default class Validator extends Vue {
         this.nodeInfo = val
     }
 
-    updateValidators() {
-        this.$store.dispatch('Platform/updateValidators')
+    async updateValidators() {
+        const updatingValidators = this.$store.dispatch('Platform/updateValidators')
+        return updatingValidators
     }
 
     activated() {
@@ -395,6 +396,7 @@ export default class Validator extends Vue {
     }
 
     async refresh() {
+        await this.updateValidators()
         if (this.tab == 'opt-rewards') {
             this.loading = true
             await this.$store.dispatch('Signavault/updateTransaction')
@@ -412,7 +414,6 @@ export default class Validator extends Vue {
             this.$store.dispatch('updateBalances')
             if (this.isMultisignTx) await this.getPendingTransaction()
             await this.evaluateCanRegisterNode()
-            await this.updateValidators()
             await this.$store.dispatch('Signavault/updateTransaction')
             if (this.nodeInfo) await this.getInformationValidator()
             this.loading = false
