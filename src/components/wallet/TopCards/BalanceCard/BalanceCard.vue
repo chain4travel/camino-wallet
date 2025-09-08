@@ -9,7 +9,11 @@
                         class="spinner"
                         data-cy="spinner-balance"
                     ></Spinner>
-                    <button v-else @click="updateBalance" data-cy="btn-refresh-balance">
+                    <button
+                        v-else
+                        @click="updateBalanceAndValidators"
+                        data-cy="btn-refresh-balance"
+                    >
                         <v-icon>mdi-refresh</v-icon>
                     </button>
                 </div>
@@ -124,7 +128,6 @@ import { bnToBig } from '@/helpers/helper'
 import { priceDict } from '@/store/types'
 import { WalletNameType, WalletType } from '@/js/wallets/types'
 import UtxosBreakdownModal from '@/components/modals/UtxosBreakdown/UtxosBreakdownModal.vue'
-import { ava } from '@/AVA'
 
 @Component({
     components: {
@@ -147,8 +150,9 @@ export default class BalanceCard extends Vue {
         utxos_modal: UtxosBreakdownModal
     }
 
-    updateBalance(): void {
+    updateBalanceAndValidators(): void {
         this.$store.dispatch('updateBalances')
+        this.$store.dispatch('Platform/updateValidators')
     }
 
     showUTXOsModal() {
