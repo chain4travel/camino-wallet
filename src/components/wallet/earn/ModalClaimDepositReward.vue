@@ -220,8 +220,10 @@ export default class ModalClaimDepositReward extends Vue {
                     this.claimed = 1
                 })
                 .catch((err) => {
+                    const error = err instanceof Error ? err : new Error('Unknown error')
+                    const errorMessage = error?.message
                     dispatchNotification({
-                        message: this.$t('notifications.something_went_wrong'),
+                        message: errorMessage,
                         type: 'error',
                     })
                     this.confiremedClaimedAmount = new BN(0)
