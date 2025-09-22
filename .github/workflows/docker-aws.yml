@@ -16,9 +16,9 @@ on:
 
 env:
   node_version: 16
-  module_docker_image: "278308921038.dkr.ecr.eu-central-1.amazonaws.com/camino-suite-voting"
+  module_docker_image: "278308921038.dkr.ecr.eu-central-1.amazonaws.com/camino-suite-wallet"
   aws_region: "eu-central-1"
-  
+
 jobs:
   build_docker:
     name: Build Docker
