@@ -74,8 +74,8 @@ jobs:
       - name: create module docker image
         #if: github.event_name == 'push'
         run: |
-          docker build . -t ${{ env.module_docker_image }}:${{ github.ref_name }} --build-arg BUILD_ENV=build:${{ steps.setDefaults.outputs.build_env }}
-          docker push ${{ env.module_docker_image }}:${{ github.ref_name }}
+          docker build . -t ${{ env.module_docker_image }}:suite --build-arg BUILD_ENV=build:${{ steps.setDefaults.outputs.build_env }}
+          docker push ${{ env.module_docker_image }}:suite
 
       - name: create suite docker image
         run: |
