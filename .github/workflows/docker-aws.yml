@@ -16,8 +16,8 @@ on:
 
 env:
   node_version: 16
-  module_docker_image: "278308921038.dkr.ecr.eu-central-1.amazonaws.com/camino-suite-wallet"
-  aws_region: "eu-central-1"
+  module_docker_image: '278308921038.dkr.ecr.eu-central-1.amazonaws.com/camino-suite-wallet'
+  aws_region: 'eu-central-1'
 
 jobs:
   build_docker:
@@ -69,21 +69,20 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.aws_region }}
-        
+
       - name: Login to Amazon ECR
         if: github.event_name == 'push'
         run: |
           aws ecr get-login-password --region ${{ env.aws_region }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.aws_region }}.amazonaws.com
-    
 
       - name: create module docker image
-        run: |   
-            docker build . -t ${{ env.module_docker_image }}:${{ steps.setDefaults.outputs.tag }} --build-arg BUILD_ENV=build:${{ steps.setDefaults.outputs.build_env }}
-  
+        run: |
+          docker build . -t ${{ env.module_docker_image }}:${{ steps.setDefaults.outputs.tag }} --build-arg BUILD_ENV=build:${{ steps.setDefaults.outputs.build_env }}
+
       - name: push module docker image
         if: github.event_name == 'push'
-        run: |   
-            docker push ${{ env.module_docker_image }}:${{ steps.setDefaults.outputs.tag }}
+        run: |
+          docker push ${{ env.module_docker_image }}:${{ steps.setDefaults.outputs.tag }}
 
       - name: create suite docker image
         run: |
@@ -102,7 +101,7 @@ jobs:
             --service ${{ steps.setDefaults.outputs.service_name }} \
             --task-definition ${{ steps.setDefaults.outputs.task_definition }} \
             --force-new-deployment \
-            --region ${{ env.aws_region }}  
+            --region ${{ env.aws_region }}
 
       - name: checkout camino-suite
         if: ${{ (github.event_name == 'push') && (steps.setDefaults.outputs.build_env  == 'stage') }}
