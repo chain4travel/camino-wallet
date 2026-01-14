@@ -445,6 +445,10 @@ export default class Validator extends Vue {
             await this.evaluateCanRegisterNode()
             await this.$store.dispatch('Signavault/updateTransaction')
             if (this.hasValidator) {
+                const validators = this.$store.state.Platform.validators
+                this.nodeInfo =
+                    validators.find((v: ValidatorRaw) => v.nodeID === this.nodeId) ?? null
+                if (!this.nodeInfo) return
                 await this.getInformationValidator()
                 this.startRemainingTimer()
             } else {
@@ -527,6 +531,10 @@ export default class Validator extends Vue {
             await this.evaluateCanRegisterNode()
 
             if (this.hasValidator) {
+                const validators = this.$store.state.Platform.validators
+                this.nodeInfo =
+                    validators.find((v: ValidatorRaw) => v.nodeID === this.nodeId) ?? null
+                if (!this.nodeInfo) return
                 await this.getInformationValidator()
             } else {
                 this.nodeInfo = null
