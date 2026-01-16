@@ -188,6 +188,7 @@ export default class Validator extends Vue {
     tab: string = 'opt-validator'
     pendingValidator: ValidatorRaw | null = null
     loading: boolean = false
+    private remainingInterval: ReturnType<typeof setInterval> | null = null
 
     nodeVersion: string = ''
     initialized: boolean = false
@@ -248,6 +249,33 @@ export default class Validator extends Vue {
         this.nodeInfo = val
     }
 
+    startRemainingTimer() {
+        if (this.remainingInterval !== null) return
+
+        this.remainingInterval = setInterval(() => {
+            if (!this.nodeInfo) return
+
+            const now = moment()
+            const end = moment.unix(Number(this.nodeInfo.endTime))
+
+            const diff = moment.duration(end.diff(now))
+
+            if (diff.asSeconds() <= 0) {
+                this.refresh()
+                this.stopRemainingTimer()
+            } else {
+                this.reaminingValidation = this.humanizeDuration(diff)
+            }
+        }, 1000)
+    }
+
+    stopRemainingTimer() {
+        if (this.remainingInterval !== null) {
+            clearInterval(this.remainingInterval)
+            this.remainingInterval = null
+        }
+    }
+
     async updateValidators() {
         const updatingValidators = this.$store.dispatch('Platform/updateValidators')
         return updatingValidators
@@ -268,6 +296,7 @@ export default class Validator extends Vue {
 
     deactivated() {
         clearInterval(this.intervalID)
+        this.stopRemainingTimer()
     }
 
     hrp() {
@@ -415,7 +444,16 @@ export default class Validator extends Vue {
             if (this.isMultisignTx) await this.getPendingTransaction()
             await this.evaluateCanRegisterNode()
             await this.$store.dispatch('Signavault/updateTransaction')
-            if (this.nodeInfo) await this.getInformationValidator()
+            if (this.hasValidator) {
+                const validators = this.$store.state.Platform.validators
+                this.nodeInfo =
+                    validators.find((v: ValidatorRaw) => v.nodeID === this.nodeId) ?? null
+                if (!this.nodeInfo) return
+                await this.getInformationValidator()
+                this.startRemainingTimer()
+            } else {
+                this.nodeInfo = null
+            }
             this.loading = false
             this.loadingRefreshRegisterNode = false
         }
@@ -480,8 +518,32 @@ export default class Validator extends Vue {
         }
     }
 
+    @Watch('$store.state.Platform.validators', { deep: true })
+    async onValidatorsUpdated() {
+        if (!this.nodeId) return
+
+        // re-check pending / active state
+        const pending = await WalletHelper.findPendingValidator(this.nodeId)
+        this.pendingValidator = pending
+
+        if (!pending) {
+            // validator might now be active or expired
+            await this.evaluateCanRegisterNode()
+
+            if (this.hasValidator) {
+                const validators = this.$store.state.Platform.validators
+                this.nodeInfo =
+                    validators.find((v: ValidatorRaw) => v.nodeID === this.nodeId) ?? null
+                if (!this.nodeInfo) return
+                await this.getInformationValidator()
+            } else {
+                this.nodeInfo = null
+            }
+        }
+    }
+
     get hasValidator(): boolean {
-        return this.$store.getters['Platform/isValidator'](this.registeredNodeID)
+        return this.$store.getters['Platform/isValidator'](this.nodeId)
     }
 
     get activeNetwork(): null | AvaNetwork {
